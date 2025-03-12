@@ -2,10 +2,10 @@
 
 [English](README.md) | [中文](README_cn.md)
 
-[![Go Report Card](https://goreportcard.com/badge/github.com/yourusername/asyncdatapipeline)](https://goreportcard.com/report/github.com/yourusername/asyncdatapipeline)
-[![GoDoc](https://godoc.org/github.com/yourusername/asyncdatapipeline?status.svg)](https://godoc.org/github.com/yourusername/asyncdatapipeline)
-[![Coverage Status](https://coveralls.io/repos/github/yourusername/asyncdatapipeline/badge.svg?branch=master)](https://coveralls.io/github/yourusername/asyncdatapipeline?branch=master)
-[![Build Status](https://github.com/yourusername/asyncdatapipeline/workflows/Go/badge.svg)](https://github.com/yourusername/asyncdatapipeline/actions)
+[![Go Report Card](https://goreportcard.com/badge/github.com/rushairer/asyncdatapipeline)](https://goreportcard.com/report/github.com/rushairer/asyncdatapipeline)
+[![GoDoc](https://godoc.org/github.com/rushairer/asyncdatapipeline?status.svg)](https://godoc.org/github.com/rushairer/asyncdatapipeline)
+[![Coverage Status](https://coveralls.io/repos/github/rushairer/asyncdatapipeline/badge.svg?branch=master)](https://coveralls.io/github/rushairer/asyncdatapipeline?branch=master)
+[![Build Status](https://github.com/rushairer/asyncdatapipeline/workflows/Go/badge.svg)](https://github.com/rushairer/asyncdatapipeline/actions)
 
 AsyncDataPipeline 是一个高性能的异步数据处理管道，专门用于处理需要并发采集和处理数据的场景。它提供了简单易用的接口，支持自定义的数据采集和处理逻辑，并具有优秀的性能表现。
 
@@ -125,14 +125,14 @@ AsyncDataPipeline 提供了实时性能指标监控功能。您可以订阅指�
 
 ### 可用指标
 
-| 指标 | 类型 | 描述 |
-| ---- | ---- | ---- |
-| TotalDuration | time.Duration | 管道的总运行时间 |
-| ProcessingDuration | time.Duration | 数据处理所用时间 |
-| IdleDuration | time.Duration | 空闲状态时间 |
-| BatchCount | int64 | 已处理的数据批次数 |
-| ItemCount | int64 | 已处理的数据项总数 |
-| IdleRatio | float64 | 空闲时间占总时间的比例 |
+| 指标               | 类型          | 描述                   |
+| ------------------ | ------------- | ---------------------- |
+| TotalDuration      | time.Duration | 管道的总运行时间       |
+| ProcessingDuration | time.Duration | 数据处理所用时间       |
+| IdleDuration       | time.Duration | 空闲状态时间           |
+| BatchCount         | int64         | 已处理的数据批次数     |
+| ItemCount          | int64         | 已处理的数据项总数     |
+| IdleRatio          | float64       | 空闲时间占总时间的比例 |
 
 ### 使用示例
 
@@ -155,10 +155,11 @@ func main() {
 ```
 
 您可以使用这些指标来：
-- 实时监控管道性能
-- 根据空闲比例优化工作协程数量
-- 跟踪处理吞吐量
-- 识别性能瓶颈
+
+-   实时监控管道性能
+-   根据空闲比例优化工作协程数量
+-   跟踪处理吞吐量
+-   识别性能瓶颈
 
 ## 错误处理
 

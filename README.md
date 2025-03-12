@@ -2,10 +2,10 @@
 
 [English](README.md) | [中文](README_cn.md)
 
-[![Go Report Card](https://goreportcard.com/badge/github.com/yourusername/asyncdatapipeline)](https://goreportcard.com/report/github.com/yourusername/asyncdatapipeline)
-[![GoDoc](https://godoc.org/github.com/yourusername/asyncdatapipeline?status.svg)](https://godoc.org/github.com/yourusername/asyncdatapipeline)
-[![Coverage Status](https://coveralls.io/repos/github/yourusername/asyncdatapipeline/badge.svg?branch=master)](https://coveralls.io/github/yourusername/asyncdatapipeline?branch=master)
-[![Build Status](https://github.com/yourusername/asyncdatapipeline/workflows/Go/badge.svg)](https://github.com/yourusername/asyncdatapipeline/actions)
+[![Go Report Card](https://goreportcard.com/badge/github.com/rushairer/asyncdatapipeline)](https://goreportcard.com/report/github.com/rushairer/asyncdatapipeline)
+[![GoDoc](https://godoc.org/github.com/rushairer/asyncdatapipeline?status.svg)](https://godoc.org/github.com/rushairer/asyncdatapipeline)
+[![Coverage Status](https://coveralls.io/repos/github/rushairer/asyncdatapipeline/badge.svg?branch=master)](https://coveralls.io/github/rushairer/asyncdatapipeline?branch=master)
+[![Build Status](https://github.com/rushairer/asyncdatapipeline/workflows/Go/badge.svg)](https://github.com/rushairer/asyncdatapipeline/actions)
 
 AsyncDataPipeline is a high-performance asynchronous data processing pipeline specifically designed for scenarios requiring concurrent data collection and processing. It provides a simple and easy-to-use interface, supports custom data collection and processing logic, and delivers excellent performance.
 
@@ -125,14 +125,14 @@ AsyncDataPipeline provides real-time performance metrics monitoring capabilities
 
 ### Available Metrics
 
-| Metric | Type | Description |
-| ------ | ---- | ----------- |
-| TotalDuration | time.Duration | Total running time of the pipeline |
-| ProcessingDuration | time.Duration | Time spent on data processing |
-| IdleDuration | time.Duration | Time spent in idle state |
-| BatchCount | int64 | Number of data batches processed |
-| ItemCount | int64 | Total number of data items processed |
-| IdleRatio | float64 | Ratio of idle time to total time |
+| Metric             | Type          | Description                          |
+| ------------------ | ------------- | ------------------------------------ |
+| TotalDuration      | time.Duration | Total running time of the pipeline   |
+| ProcessingDuration | time.Duration | Time spent on data processing        |
+| IdleDuration       | time.Duration | Time spent in idle state             |
+| BatchCount         | int64         | Number of data batches processed     |
+| ItemCount          | int64         | Total number of data items processed |
+| IdleRatio          | float64       | Ratio of idle time to total time     |
 
 ### Usage Example
 
@@ -155,10 +155,11 @@ func main() {
 ```
 
 You can use these metrics to:
-- Monitor pipeline performance in real-time
-- Optimize worker count based on idle ratio
-- Track processing throughput
-- Identify performance bottlenecks
+
+-   Monitor pipeline performance in real-time
+-   Optimize worker count based on idle ratio
+-   Track processing throughput
+-   Identify performance bottlenecks
 
 ## Error Handling
 
