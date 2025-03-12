@@ -253,3 +253,304 @@ func TestAsyncDataPipeline(t *testing.T) {
 		}
 	})
 }
+
+// 性能指标测试
+func TestPipelineMetrics(t *testing.T) {
+	// 测试用例：基本性能指标
+	t.Run("basic metrics", func(t *testing.T) {
+		config := &AsyncDataPipelineConfig{
+			MaxWorkers: 4,
+			IdleTime:   time.Second,
+		}
+
+		// 模拟数据和处理延迟
+		testData := []TestData{{ID: 1, Value: "test"}}
+		processDelay := time.Millisecond * 100
+		firstCall := true
+
+		collectFunc := func(ctx context.Context) ([]TestData, error) {
+			if !firstCall {
+				time.Sleep(time.Second * 2)
+				return nil, nil
+			}
+			firstCall = false
+			return testData, nil
+		}
+
+		processFunc := func(ctx context.Context, data []TestData) error {
+			time.Sleep(processDelay)
+			return nil
+		}
+
+		pipeline, err := NewAsyncDataPipeline(config, collectFunc, processFunc)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		ctx, cancel := context.WithTimeout(context.Background(), time.Second*2)
+		defer cancel()
+
+		_, _ = pipeline.Perform(ctx)
+
+		// 验证性能指标
+		metrics := pipeline.metrics
+		if metrics.BatchCount != 1 {
+			t.Errorf("expected 1 batch, got %d", metrics.BatchCount)
+		}
+		if metrics.ItemCount != 1 {
+			t.Errorf("expected 1 item, got %d", metrics.ItemCount)
+		}
+		if metrics.ProcessingDuration < processDelay {
+			t.Errorf("processing duration too short: %v", metrics.ProcessingDuration)
+		}
+		if metrics.TotalDuration < metrics.ProcessingDuration {
+			t.Errorf("total duration shorter than processing duration")
+		}
+	})
+
+	// 测试用例：空闲时间比率
+	t.Run("idle ratio", func(t *testing.T) {
+		config := &AsyncDataPipelineConfig{
+			MaxWorkers: 4,
+			IdleTime:   time.Second,
+		}
+
+		firstCall := true
+		collectFunc := func(ctx context.Context) ([]TestData, error) {
+			if firstCall {
+				firstCall = false
+				return []TestData{{ID: 1, Value: "test"}}, nil
+			}
+			time.Sleep(time.Second * 2)
+			return nil, nil
+		}
+
+		processFunc := func(ctx context.Context, data []TestData) error {
+			return nil
+		}
+
+		pipeline, err := NewAsyncDataPipeline(config, collectFunc, processFunc)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		ctx, cancel := context.WithTimeout(context.Background(), time.Second*3)
+		defer cancel()
+
+		_, _ = pipeline.Perform(ctx)
+
+		// 验证空闲时间比率
+		idleRatio := pipeline.metrics.GetIdleRatio()
+		if idleRatio <= 0 {
+			t.Error("expected non-zero idle ratio")
+		}
+		if idleRatio >= 1 {
+			t.Error("idle ratio should be less than 1")
+		}
+	})
+
+	// 测试用例：高负载性能指标
+	t.Run("high load metrics", func(t *testing.T) {
+		config := &AsyncDataPipelineConfig{
+			MaxWorkers: 4,
+			IdleTime:   time.Second,
+		}
+
+		expectedBatches := 5
+		batchSize := 10
+		batchCount := 0
+
+		collectFunc := func(ctx context.Context) ([]TestData, error) {
+			if batchCount >= expectedBatches {
+				return nil, nil
+			}
+			batchCount++
+			data := make([]TestData, batchSize)
+			for i := range data {
+				data[i] = TestData{ID: i, Value: fmt.Sprintf("value_%d", i)}
+			}
+			return data, nil
+		}
+
+		processFunc := func(ctx context.Context, data []TestData) error {
+			time.Sleep(time.Millisecond * 10)
+			return nil
+		}
+
+		pipeline, err := NewAsyncDataPipeline(config, collectFunc, processFunc)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
+		defer cancel()
+
+		_, _ = pipeline.Perform(ctx)
+
+		// 验证性能指标
+		metrics := pipeline.metrics
+
+		if metrics.BatchCount != int64(expectedBatches) {
+			t.Errorf("expected %d batches, got %d", expectedBatches, metrics.BatchCount)
+		}
+		if metrics.ItemCount != int64(expectedBatches*batchSize) {
+			t.Errorf("expected %d items, got %d", expectedBatches*batchSize, metrics.ItemCount)
+		}
+		if metrics.ProcessingDuration <= 0 {
+			t.Error("processing duration should be greater than 0")
+		}
+	})
+}
+
+// 测试用例：指标订阅和导出
+func TestMetricsSubscriptionAndExport(t *testing.T) {
+	// 测试指标订阅
+	t.Run("metrics subscription", func(t *testing.T) {
+		config := &AsyncDataPipelineConfig{
+			MaxWorkers: 4,
+			IdleTime:   time.Second,
+		}
+
+		callCount := 0
+		var lastMetrics PipelineMetrics
+		callback := func(metrics PipelineMetrics) {
+			callCount++
+			lastMetrics = metrics
+		}
+
+		firstCall := true
+		collectFunc := func(ctx context.Context) ([]TestData, error) {
+			if !firstCall {
+				time.Sleep(time.Second * 2)
+				return nil, nil
+			}
+			firstCall = false
+			return []TestData{{ID: 1, Value: "test"}}, nil
+		}
+
+		processFunc := func(ctx context.Context, data []TestData) error {
+			time.Sleep(time.Millisecond * 100)
+			return nil
+		}
+
+		pipeline, err := NewAsyncDataPipeline(config, collectFunc, processFunc)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		// 订阅指标更新
+		sub := pipeline.SubscribeMetrics(callback, time.Millisecond*200)
+		defer pipeline.UnsubscribeMetrics(sub)
+
+		ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+		defer cancel()
+
+		_, _ = pipeline.Perform(ctx)
+
+		// 验证回调被调用
+		if callCount == 0 {
+			t.Error("metrics callback was not called")
+		}
+
+		// 验证指标数据
+		if lastMetrics.BatchCount != 1 {
+			t.Errorf("expected 1 batch, got %d", lastMetrics.BatchCount)
+		}
+	})
+
+	// 测试指标导出
+	t.Run("metrics export", func(t *testing.T) {
+		config := &AsyncDataPipelineConfig{
+			MaxWorkers: 4,
+			IdleTime:   time.Second,
+		}
+
+		firstCall := true
+		collectFunc := func(ctx context.Context) ([]TestData, error) {
+			if !firstCall {
+				time.Sleep(time.Second * 2)
+				return nil, nil
+			}
+			firstCall = false
+			return []TestData{{ID: 1, Value: "test"}}, nil
+		}
+
+		processFunc := func(ctx context.Context, data []TestData) error {
+			time.Sleep(time.Millisecond * 100)
+			return nil
+		}
+
+		pipeline, err := NewAsyncDataPipeline(config, collectFunc, processFunc)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+		defer cancel()
+
+		_, _ = pipeline.Perform(ctx)
+
+		// 导出指标
+		metrics := pipeline.ExportMetrics()
+
+		// 验证导出数据
+		if metrics["batch_count"].(int64) != 1 {
+			t.Errorf("expected 1 batch, got %v", metrics["batch_count"])
+		}
+		if metrics["item_count"].(int64) != 1 {
+			t.Errorf("expected 1 item, got %v", metrics["item_count"])
+		}
+		if metrics["idle_ratio"].(float64) < 0 || metrics["idle_ratio"].(float64) > 1 {
+			t.Error("invalid idle ratio")
+		}
+	})
+
+	// 测试实时指标获取
+	t.Run("current metrics", func(t *testing.T) {
+		config := &AsyncDataPipelineConfig{
+			MaxWorkers: 4,
+			IdleTime:   time.Second,
+		}
+
+		firstCall := true
+		collectFunc := func(ctx context.Context) ([]TestData, error) {
+			if !firstCall {
+				time.Sleep(time.Second * 2)
+				return nil, nil
+			}
+			firstCall = false
+			return []TestData{{ID: 1, Value: "test"}}, nil
+		}
+
+		processFunc := func(ctx context.Context, data []TestData) error {
+			time.Sleep(time.Millisecond * 100)
+			return nil
+		}
+
+		pipeline, err := NewAsyncDataPipeline(config, collectFunc, processFunc)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+		defer cancel()
+
+		go func() {
+			_, _ = pipeline.Perform(ctx)
+		}()
+
+		// 等待处理开始
+		time.Sleep(time.Millisecond * 200)
+
+		// 获取当前指标
+		currentMetrics := pipeline.GetCurrentMetrics()
+
+		// 验证实时指标
+		if currentMetrics.BatchCount != 1 {
+			t.Errorf("expected 1 batch, got %d", currentMetrics.BatchCount)
+		}
+		if currentMetrics.ProcessingDuration <= 0 {
+			t.Error("processing duration should be greater than 0")
+		}
+	})
+}

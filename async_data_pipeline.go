@@ -66,6 +66,7 @@ type CollectFunc[T any] func(context.Context) ([]T, error)
 // 负责处理一批数据，可以实现数据转换、存储等操作
 type ProcessFunc[T any] func(context.Context, []T) error
 
+
 // AsyncDataPipeline 实现了一个支持泛型的异步数据处理管道
 // 通过并发的方式实现数据的采集和处理，支持自动管理协程生命周期
 type AsyncDataPipeline[T any] struct {
@@ -75,10 +76,94 @@ type AsyncDataPipeline[T any] struct {
 
     errorMu   sync.Mutex
     errorList []error
+
+    // 性能指标
+    metrics      PipelineMetrics
+    metricsMu    sync.Mutex
+    startTime    time.Time
+    lastDataTime time.Time
+
+    // 指标订阅
+    subscriptionsMu sync.Mutex
+    subscriptions   []*MetricsSubscription
 }
 
 // NewAsyncDataPipeline 创建一个新的数据处理管道实例
 // 返回的实例可以重复使用，但同一时间只能执行一次数据处理
+// GetCurrentMetrics 返回当前指标的快照
+func (p *AsyncDataPipeline[T]) GetCurrentMetrics() PipelineMetrics {
+    p.metricsMu.Lock()
+    defer p.metricsMu.Unlock()
+    return p.metrics.Clone()
+}
+
+// SubscribeMetrics 注册指标回调函数
+func (p *AsyncDataPipeline[T]) SubscribeMetrics(callback MetricsCallback, interval time.Duration) *MetricsSubscription {
+    if interval <= 0 {
+        interval = time.Second
+    }
+
+    sub := &MetricsSubscription{
+        callback: callback,
+        interval: interval,
+        stopCh:   make(chan struct{}),
+    }
+
+    p.subscriptionsMu.Lock()
+    p.subscriptions = append(p.subscriptions, sub)
+    p.subscriptionsMu.Unlock()
+
+    // 启动订阅协程
+    go func() {
+        ticker := time.NewTicker(interval)
+        defer ticker.Stop()
+
+        for {
+            select {
+            case <-sub.stopCh:
+                return
+            case <-ticker.C:
+                metrics := p.GetCurrentMetrics()
+                sub.callback(metrics)
+            }
+        }
+    }()
+
+    return sub
+}
+
+// UnsubscribeMetrics 取消指标订阅
+func (p *AsyncDataPipeline[T]) UnsubscribeMetrics(sub *MetricsSubscription) {
+    if sub == nil {
+        return
+    }
+
+    close(sub.stopCh)
+
+    p.subscriptionsMu.Lock()
+    defer p.subscriptionsMu.Unlock()
+
+    for i, s := range p.subscriptions {
+        if s == sub {
+            p.subscriptions = append(p.subscriptions[:i], p.subscriptions[i+1:]...)
+            break
+        }
+    }
+}
+
+// ExportMetrics 导出当前指标
+func (p *AsyncDataPipeline[T]) ExportMetrics() map[string]interface{} {
+    metrics := p.GetCurrentMetrics()
+    return map[string]interface{}{
+        "total_duration":      metrics.TotalDuration.Seconds(),
+        "processing_duration": metrics.ProcessingDuration.Seconds(),
+        "idle_duration":      metrics.IdleDuration.Seconds(),
+        "batch_count":        metrics.BatchCount,
+        "item_count":         metrics.ItemCount,
+        "idle_ratio":         metrics.GetIdleRatio(),
+    }
+}
+
 func NewAsyncDataPipeline[T any](
     config *AsyncDataPipelineConfig,
     collectFunc CollectFunc[T],
@@ -137,14 +222,22 @@ func (p *AsyncDataPipeline[T]) Perform(
     reason CloseReason,
     errorList []error,
 ) {
+    // 初始化性能指标
+    p.startTime = time.Now()
+    p.lastDataTime = p.startTime
+
     // 初始化
     ctx, cancel := context.WithCancel(ctx)
-    defer cancel()
+    defer func() {
+        cancel()
+        // 更新总运行时间
+        p.metricsMu.Lock()
+        p.metrics.TotalDuration = time.Since(p.startTime)
+        p.metricsMu.Unlock()
+    }()
 
     ch := make(chan []T, p.config.MaxWorkers)
-
     idleTimer := time.NewTimer(p.config.IdleTime)
-
     var wg sync.WaitGroup
 
     // 采集队列
@@ -157,23 +250,26 @@ func (p *AsyncDataPipeline[T]) Perform(
             case <-ctx.Done():
                 return
             default:
-                // 调用采集方法获取数据
                 data, err := p.collectFunc(ctx)
                 if err != nil {
-                    // 检查是否是取消信号
                     if errors.Is(err, ErrNeedCancel) {
                         reason = CloseReasonCollectCancel
                         cancel()
                     }
-
                     p.errorMu.Lock()
                     p.errorList = append(p.errorList, &CollectError{Err: err})
                     p.errorMu.Unlock()
                     return
                 }
-                // 将数据发送到通道
                 select {
                 case ch <- data:
+                    if data != nil {
+                        // 更新数据统计
+                        p.metricsMu.Lock()
+                        p.metrics.BatchCount++
+                        p.metrics.ItemCount += int64(len(data))
+                        p.metricsMu.Unlock()
+                    }
                 case <-ctx.Done():
                     return
                 }
@@ -193,24 +289,36 @@ func (p *AsyncDataPipeline[T]) Perform(
                 if !ok {
                     return
                 }
+                // 更新空闲时间
+                now := time.Now()
+                p.metricsMu.Lock()
+                p.metrics.IdleDuration += now.Sub(p.lastDataTime)
+                p.lastDataTime = now
+                p.metricsMu.Unlock()
+
                 // 重置空闲计时器
                 idleTimer.Reset(p.config.IdleTime)
 
-                // 调用处理方法处理数据
+                // 记录处理开始时间
+                processStart := time.Now()
+
                 if err := p.processFunc(ctx, data); err != nil {
-                    // 检查是否是取消信号
                     if errors.Is(err, ErrNeedCancel) {
                         reason = CloseReasonProcessCancel
                         cancel()
                     }
-
                     p.errorMu.Lock()
                     p.errorList = append(p.errorList, &ProcessError{Err: err, Data: data})
                     p.errorMu.Unlock()
                     return
                 }
+
+                // 更新处理时间
+                p.metricsMu.Lock()
+                p.metrics.ProcessingDuration += time.Since(processStart)
+                p.metricsMu.Unlock()
+
             case <-idleTimer.C:
-                // 通道空闲超时
                 reason = CloseReasonIdleTimeout
                 cancel()
                 return

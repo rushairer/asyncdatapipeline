@@ -119,6 +119,47 @@ Performance under different concurrency levels with standard configuration (4 CP
 | 8           | 4500                       | 40                |
 | 16          | 5500                       | 70                |
 
+## Performance Monitoring
+
+AsyncDataPipeline provides real-time performance metrics monitoring capabilities. You can subscribe to metrics updates to monitor the pipeline's performance in real-time.
+
+### Available Metrics
+
+| Metric | Type | Description |
+| ------ | ---- | ----------- |
+| TotalDuration | time.Duration | Total running time of the pipeline |
+| ProcessingDuration | time.Duration | Time spent on data processing |
+| IdleDuration | time.Duration | Time spent in idle state |
+| BatchCount | int64 | Number of data batches processed |
+| ItemCount | int64 | Total number of data items processed |
+| IdleRatio | float64 | Ratio of idle time to total time |
+
+### Usage Example
+
+```go
+func main() {
+    // ... pipeline initialization code ...
+
+    // Subscribe to metrics updates
+    pipeline.SubscribeMetrics(func(metrics asyncdatapipeline.PipelineMetrics) {
+        fmt.Printf("Total Duration: %v\n", metrics.TotalDuration)
+        fmt.Printf("Processing Duration: %v\n", metrics.ProcessingDuration)
+        fmt.Printf("Idle Duration: %v\n", metrics.IdleDuration)
+        fmt.Printf("Batch Count: %d\n", metrics.BatchCount)
+        fmt.Printf("Item Count: %d\n", metrics.ItemCount)
+        fmt.Printf("Idle Ratio: %.2f%%\n", metrics.GetIdleRatio()*100)
+    }, time.Second*5) // Update every 5 seconds
+
+    // ... pipeline execution code ...
+}
+```
+
+You can use these metrics to:
+- Monitor pipeline performance in real-time
+- Optimize worker count based on idle ratio
+- Track processing throughput
+- Identify performance bottlenecks
+
 ## Error Handling
 
 ### Error Types

@@ -119,6 +119,47 @@ graph TD
 | 8      | 4500               | 40            |
 | 16     | 5500               | 70            |
 
+## 性能监控
+
+AsyncDataPipeline 提供了实时性能指标监控功能。您可以订阅指标更新，实时监控管道的性能表现。
+
+### 可用指标
+
+| 指标 | 类型 | 描述 |
+| ---- | ---- | ---- |
+| TotalDuration | time.Duration | 管道的总运行时间 |
+| ProcessingDuration | time.Duration | 数据处理所用时间 |
+| IdleDuration | time.Duration | 空闲状态时间 |
+| BatchCount | int64 | 已处理的数据批次数 |
+| ItemCount | int64 | 已处理的数据项总数 |
+| IdleRatio | float64 | 空闲时间占总时间的比例 |
+
+### 使用示例
+
+```go
+func main() {
+    // ... 管道初始化代码 ...
+
+    // 订阅指标更新
+    pipeline.SubscribeMetrics(func(metrics asyncdatapipeline.PipelineMetrics) {
+        fmt.Printf("总运行时间: %v\n", metrics.TotalDuration)
+        fmt.Printf("处理时间: %v\n", metrics.ProcessingDuration)
+        fmt.Printf("空闲时间: %v\n", metrics.IdleDuration)
+        fmt.Printf("批次数: %d\n", metrics.BatchCount)
+        fmt.Printf("数据项数: %d\n", metrics.ItemCount)
+        fmt.Printf("空闲比例: %.2f%%\n", metrics.GetIdleRatio()*100)
+    }, time.Second*5) // 每5秒更新一次
+
+    // ... 管道执行代码 ...
+}
+```
+
+您可以使用这些指标来：
+- 实时监控管道性能
+- 根据空闲比例优化工作协程数量
+- 跟踪处理吞吐量
+- 识别性能瓶颈
+
 ## 错误处理
 
 ### 错误类型
