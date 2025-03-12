@@ -2,10 +2,11 @@
 
 [English](README.md) | [中文](README_cn.md)
 
+[![Go Tests](https://github.com/rushairer/asyncdatapipeline/actions/workflows/test.yml/badge.svg)](https://github.com/rushairer/asyncdatapipeline/actions/workflows/test.yml)
 [![Go Report Card](https://goreportcard.com/badge/github.com/rushairer/asyncdatapipeline)](https://goreportcard.com/report/github.com/rushairer/asyncdatapipeline)
 [![GoDoc](https://godoc.org/github.com/rushairer/asyncdatapipeline?status.svg)](https://godoc.org/github.com/rushairer/asyncdatapipeline)
-[![Coverage Status](https://coveralls.io/repos/github/rushairer/asyncdatapipeline/badge.svg?branch=master)](https://coveralls.io/github/rushairer/asyncdatapipeline?branch=master)
-[![Build Status](https://github.com/rushairer/asyncdatapipeline/workflows/Go/badge.svg)](https://github.com/rushairer/asyncdatapipeline/actions)
+[![Latest Release](https://img.shields.io/github/v/release/rushairer/asyncdatapipeline.svg)](https://github.com/rushairer/asyncdatapipeline/releases)
+[![License](https://img.shields.io/github/license/rushairer/asyncdatapipeline.svg)](https://github.com/rushairer/asyncdatapipeline/blob/main/LICENSE)
 
 AsyncDataPipeline 是一个高性能的异步数据处理管道，专门用于处理需要并发采集和处理数据的场景。它提供了简单易用的接口，支持自定义的数据采集和处理逻辑，并具有优秀的性能表现。
 
