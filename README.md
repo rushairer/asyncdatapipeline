@@ -47,6 +47,7 @@ func main() {
     config := &asyncdatapipeline.AsyncDataPipelineConfig{
         MaxWorkers: 4,
         IdleTime:   time.Second * 5,
+        CollectTimeout: time.Second * 5,
     }
 
     // Define collection function
@@ -103,10 +104,11 @@ graph TD
 
 ### AsyncDataPipelineConfig
 
-| Parameter  | Type          | Description                            | Default  |
-| ---------- | ------------- | -------------------------------------- | -------- |
-| MaxWorkers | int           | Number of concurrent worker goroutines | Required |
-| IdleTime   | time.Duration | Idle timeout duration                  | Required |
+| Parameter      | Type          | Description                            | Default  |
+| -------------- | ------------- | -------------------------------------- | -------- |
+| MaxWorkers     | int           | Number of concurrent worker goroutines | Required |
+| IdleTime       | time.Duration | Idle timeout duration                  | Required |
+| CollectTimeout | time.Duration | Timeout duration for data collection   | Required |
 
 ## Performance Test
 

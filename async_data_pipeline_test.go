@@ -26,8 +26,9 @@ func BenchmarkAsyncDataPipeline(b *testing.B) {
 
 			// 创建pipeline配置
 			config := &AsyncDataPipelineConfig{
-				MaxWorkers: w,
-				IdleTime:   time.Second,
+				MaxWorkers:     w,
+				IdleTime:       time.Second,
+				CollectTimeout: time.Second * 5,
 			}
 
 			// 计数器
@@ -81,8 +82,9 @@ func TestAsyncDataPipeline(t *testing.T) {
 	// 测试用例：正常数据流
 	t.Run("normal flow", func(t *testing.T) {
 		config := &AsyncDataPipelineConfig{
-			MaxWorkers: 4,
-			IdleTime:   time.Second * 2,
+			MaxWorkers:     4,
+			IdleTime:       time.Second * 2,
+			CollectTimeout: time.Second * 5,
 		}
 
 		expectedData := []TestData{{ID: 1, Value: "test"}}
@@ -126,8 +128,9 @@ func TestAsyncDataPipeline(t *testing.T) {
 	// 测试用例：采集错误
 	t.Run("collect error", func(t *testing.T) {
 		config := &AsyncDataPipelineConfig{
-			MaxWorkers: 4,
-			IdleTime:   time.Second,
+			MaxWorkers:     4,
+			IdleTime:       time.Second,
+			CollectTimeout: time.Second * 5,
 		}
 
 		expectedErr := errors.New("collect error")
@@ -164,8 +167,9 @@ func TestAsyncDataPipeline(t *testing.T) {
 	// 测试用例：处理错误
 	t.Run("process error", func(t *testing.T) {
 		config := &AsyncDataPipelineConfig{
-			MaxWorkers: 4,
-			IdleTime:   time.Second,
+			MaxWorkers:     4,
+			IdleTime:       time.Second,
+			CollectTimeout: time.Second * 5,
 		}
 
 		testData := []TestData{{ID: 1, Value: "test"}}
@@ -203,8 +207,9 @@ func TestAsyncDataPipeline(t *testing.T) {
 	// 测试用例：取消操作
 	t.Run("cancel operation", func(t *testing.T) {
 		config := &AsyncDataPipelineConfig{
-			MaxWorkers: 4,
-			IdleTime:   time.Second,
+			MaxWorkers:     4,
+			IdleTime:       time.Second,
+			CollectTimeout: time.Second * 5,
 		}
 
 		collectFunc := func(ctx context.Context) ([]TestData, error) {
@@ -232,8 +237,9 @@ func TestAsyncDataPipeline(t *testing.T) {
 	// 测试用例：无效的MaxWorkers
 	t.Run("invalid max workers", func(t *testing.T) {
 		config := &AsyncDataPipelineConfig{
-			MaxWorkers: -1,
-			IdleTime:   time.Second,
+			MaxWorkers:     -1,
+			IdleTime:       time.Second,
+			CollectTimeout: time.Second * 5,
 		}
 
 		collectFunc := func(ctx context.Context) ([]TestData, error) {
@@ -259,8 +265,9 @@ func TestPipelineMetrics(t *testing.T) {
 	// 测试用例：基本性能指标
 	t.Run("basic metrics", func(t *testing.T) {
 		config := &AsyncDataPipelineConfig{
-			MaxWorkers: 4,
-			IdleTime:   time.Second,
+			MaxWorkers:     4,
+			IdleTime:       time.Second,
+			CollectTimeout: time.Second * 5,
 		}
 
 		// 模拟数据和处理延迟
@@ -311,8 +318,9 @@ func TestPipelineMetrics(t *testing.T) {
 	// 测试用例：空闲时间比率
 	t.Run("idle ratio", func(t *testing.T) {
 		config := &AsyncDataPipelineConfig{
-			MaxWorkers: 4,
-			IdleTime:   time.Second,
+			MaxWorkers:     4,
+			IdleTime:       time.Second,
+			CollectTimeout: time.Second * 5,
 		}
 
 		firstCall := true
@@ -352,8 +360,9 @@ func TestPipelineMetrics(t *testing.T) {
 	// 测试用例：高负载性能指标
 	t.Run("high load metrics", func(t *testing.T) {
 		config := &AsyncDataPipelineConfig{
-			MaxWorkers: 4,
-			IdleTime:   time.Second,
+			MaxWorkers:     4,
+			IdleTime:       time.Second,
+			CollectTimeout: time.Second * 5,
 		}
 
 		expectedBatches := 5
@@ -407,8 +416,9 @@ func TestMetricsSubscriptionAndExport(t *testing.T) {
 	// 测试指标订阅
 	t.Run("metrics subscription", func(t *testing.T) {
 		config := &AsyncDataPipelineConfig{
-			MaxWorkers: 4,
-			IdleTime:   time.Second,
+			MaxWorkers:     4,
+			IdleTime:       time.Second,
+			CollectTimeout: time.Second * 5,
 		}
 
 		callCount := 0
@@ -461,8 +471,9 @@ func TestMetricsSubscriptionAndExport(t *testing.T) {
 	// 测试指标导出
 	t.Run("metrics export", func(t *testing.T) {
 		config := &AsyncDataPipelineConfig{
-			MaxWorkers: 4,
-			IdleTime:   time.Second,
+			MaxWorkers:     4,
+			IdleTime:       time.Second,
+			CollectTimeout: time.Second * 5,
 		}
 
 		firstCall := true
@@ -508,8 +519,9 @@ func TestMetricsSubscriptionAndExport(t *testing.T) {
 	// 测试实时指标获取
 	t.Run("current metrics", func(t *testing.T) {
 		config := &AsyncDataPipelineConfig{
-			MaxWorkers: 4,
-			IdleTime:   time.Second,
+			MaxWorkers:     4,
+			IdleTime:       time.Second,
+			CollectTimeout: time.Second * 5,
 		}
 
 		firstCall := true

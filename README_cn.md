@@ -47,6 +47,7 @@ func main() {
     config := &asyncdatapipeline.AsyncDataPipelineConfig{
         MaxWorkers: 4,
         IdleTime:   time.Second * 5,
+        CollectTimeout: time.Second * 5,
     }
 
     // 定义采集函数
@@ -103,10 +104,11 @@ graph TD
 
 ### AsyncDataPipelineConfig
 
-| 参数       | 类型          | 说明           | 默认值 |
-| ---------- | ------------- | -------------- | ------ |
-| MaxWorkers | int           | 并发工作协程数 | 必填   |
-| IdleTime   | time.Duration | 空闲超时时间   | 必填   |
+| 参数           | 类型          | 说明           | 默认值 |
+| -------------- | ------------- | -------------- | ------ |
+| MaxWorkers     | int           | 并发工作协程数 | 必填   |
+| IdleTime       | time.Duration | 空闲超时时间   | 必填   |
+| CollectTimeout | time.Duration | 采集超时时间   | 必填   |
 
 ## 性能测试
 
